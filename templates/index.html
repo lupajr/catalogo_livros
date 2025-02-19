@@ -21,14 +21,11 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             padding: 20px;
             margin-bottom: 20px;
+            transition: transform 0.2s;
         }
 
-        .book-card h5 {
-            color: #333;
-        }
-
-        .book-card p {
-            color: #666;
+        .book-card:hover {
+            transform: translateY(-5px);
         }
 
         .btn-edit {
@@ -40,6 +37,56 @@
             background-color: #dc3545;
             border: none;
         }
+
+        /* Estilos personalizados para o modal */
+        .modal-content {
+            border-radius: 15px;
+            border: none;
+        }
+
+        .modal-header {
+            background: #0d6efd;
+            color: white;
+            border-radius: 15px 15px 0 0;
+        }
+
+        .modal-header .btn-close {
+            filter: invert(1);
+        }
+
+        .form-control:focus {
+            box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #0d6efd, #0b5ed7);
+            border: none;
+        }
+
+        /* Estilos para o modal de exclusão */
+        #deleteModal .modal-content {
+            border-radius: 15px;
+            border: none;
+        }
+
+        #deleteModal .modal-header {
+            background: #dc3545;
+            color: white;
+            border-radius: 15px 15px 0 0;
+        }
+
+        #deleteModal .btn-danger {
+            background: linear-gradient(135deg, #dc3545, #c82333);
+            border: none;
+        }
+
+        #deleteModal .btn-danger:hover {
+            background: linear-gradient(135deg, #c82333, #bd2130);
+        }
+
+        #deleteModal .modal-body p {
+            margin-bottom: 0.5rem;
+        }
     </style>
 </head>
 
@@ -48,7 +95,7 @@
         <h1 class="text-center mb-4">📚 Lista de Livros</h1>
 
         <!-- Formulário para adicionar livro -->
-        <div class="card mb-4">
+        <div class="card mb-4 shadow-sm">
             <div class="card-body">
                 <h5 class="card-title">Adicionar Novo Livro</h5>
                 <form id="addBookForm">
@@ -71,24 +118,57 @@
 
     <!-- Modal para editar livro -->
     <div class="modal fade" id="editModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow-lg">
                 <div class="modal-header">
-                    <h5 class="modal-title">Editar Livro</h5>
+                    <h5 class="modal-title">✏️ Editar Livro</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
+                    <div id="editError" class="alert alert-danger d-none"></div>
                     <input type="hidden" id="editId">
                     <div class="mb-3">
-                        <input type="text" id="editTitle" class="form-control" placeholder="Título" required>
+                        <label for="editTitle" class="form-label">Título</label>
+                        <input type="text" class="form-control" id="editTitle" placeholder="Digite o novo título"
+                            required>
+                        <div class="invalid-feedback">Por favor insira um título válido</div>
                     </div>
                     <div class="mb-3">
-                        <input type="text" id="editAuthor" class="form-control" placeholder="Autor" required>
+                        <label for="editAuthor" class="form-label">Autor</label>
+                        <input type="text" class="form-control" id="editAuthor" placeholder="Digite o novo autor"
+                            required>
+                        <div class="invalid-feedback">Por favor insira um autor válido</div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" id="saveEdit">Salvar</button>
+                    <button type="button" id="saveEdit" class="btn btn-primary">
+                        <span class="spinner-border spinner-border-sm d-none" role="status"></span>
+                        Salvar Alterações
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para excluir livro -->
+    <div class="modal fade" id="deleteModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow-lg">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">⚠️ Excluir Livro</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Tem certeza que deseja excluir este livro?</p>
+                    <p class="text-muted">Esta ação não pode ser desfeita.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" id="confirmDelete" class="btn btn-danger">
+                        <span class="spinner-border spinner-border-sm d-none" role="status"></span>
+                        Excluir
+                    </button>
                 </div>
             </div>
         </div>
@@ -96,6 +176,8 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        let currentBookId = null;
+
         // Função para carregar a lista de livros
         async function fetchBooks() {
             const response = await fetch("/book");
@@ -110,8 +192,14 @@
                             <h5>${book.title}</h5>
                             <p>Autor: ${book.author}</p>
                             <div class="d-grid gap-2">
-                                <button class="btn btn-edit btn-sm" onclick="openEditModal(${book.id}, '${book.title}', '${book.author}')">Editar</button>
-                                <button class="btn btn-delete btn-sm" onclick="deleteBook(${book.id})">Excluir</button>
+                                <button class="btn btn-edit btn-sm" 
+                                        onclick="openEditModal(${book.id}, '${book.title.replace(/'/g, "\\'")}', '${book.author.replace(/'/g, "\\'")}')">
+                                    Editar
+                                </button>
+                                <button class="btn btn-delete btn-sm" 
+                                        onclick="openDeleteModal(${book.id})">
+                                    Excluir
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -123,8 +211,13 @@
         // Adicionar livro
         document.getElementById("addBookForm").addEventListener("submit", async (e) => {
             e.preventDefault();
-            const title = document.getElementById("title").value;
-            const author = document.getElementById("author").value;
+            const title = document.getElementById("title").value.trim();
+            const author = document.getElementById("author").value.trim();
+
+            if (!title || !author) {
+                alert("Por favor preencha ambos os campos!");
+                return;
+            }
 
             await fetch("/book", {
                 method: "POST",
@@ -137,37 +230,98 @@
             await fetchBooks();
         });
 
-        // Abrir modal de edição
+        // Funções de edição
         function openEditModal(id, title, author) {
+            document.getElementById("editError").classList.add('d-none');
+            ['editTitle', 'editAuthor'].forEach(field => {
+                document.getElementById(field).classList.remove('is-invalid');
+            });
+
             document.getElementById("editId").value = id;
             document.getElementById("editTitle").value = title;
             document.getElementById("editAuthor").value = author;
             new bootstrap.Modal(document.getElementById("editModal")).show();
         }
 
-        // Salvar edição
         document.getElementById("saveEdit").addEventListener("click", async () => {
-            const id = document.getElementById("editId").value;
-            const title = document.getElementById("editTitle").value;
-            const author = document.getElementById("editAuthor").value;
+            const saveBtn = document.getElementById("saveEdit");
+            const spinner = saveBtn.querySelector('.spinner-border');
+            const errorDiv = document.getElementById("editError");
 
-            await fetch(`/book/${id}`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ title, author })
+            const id = document.getElementById("editId").value;
+            const title = document.getElementById("editTitle").value.trim();
+            const author = document.getElementById("editAuthor").value.trim();
+
+            // Resetar estados anteriores
+            errorDiv.classList.add('d-none');
+            ['editTitle', 'editAuthor'].forEach(field => {
+                document.getElementById(field).classList.remove('is-invalid');
             });
 
-            bootstrap.Modal.getInstance(document.getElementById("editModal")).hide();
-            await fetchBooks();
+            // Validação modificada
+            let isValid = true;
+            if (!title || !author) {
+                errorDiv.classList.remove('d-none');
+                errorDiv.textContent = "É necessário preencher os dois campos!";
+                isValid = false;
+
+                // Destacar apenas os campos vazios
+                if (!title) document.getElementById('editTitle').classList.add('is-invalid');
+                if (!author) document.getElementById('editAuthor').classList.add('is-invalid');
+            }
+
+            if (!isValid) return;
+
+            saveBtn.disabled = true;
+            spinner.classList.remove('d-none');
+
+            try {
+                const response = await fetch(`/book/${id}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ title, author })
+                });
+
+                if (!response.ok) throw new Error("Erro ao atualizar o livro");
+
+                bootstrap.Modal.getInstance(document.getElementById("editModal")).hide();
+                await fetchBooks();
+            } catch (error) {
+                errorDiv.classList.remove('d-none');
+                errorDiv.textContent = error.message;
+            } finally {
+                saveBtn.disabled = false;
+                spinner.classList.add('d-none');
+            }
         });
 
-        // Excluir livro
-        async function deleteBook(id) {
-            await fetch(`/book/${id}`, { method: "DELETE" });
-            await fetchBooks();
+        // Funções de exclusão
+        function openDeleteModal(id) {
+            currentBookId = id;
+            new bootstrap.Modal(document.getElementById('deleteModal')).show();
         }
 
-        // Carregar livros ao iniciar
+        document.getElementById('confirmDelete').addEventListener('click', async () => {
+            const deleteBtn = document.getElementById('confirmDelete');
+            const spinner = deleteBtn.querySelector('.spinner-border');
+
+            try {
+                deleteBtn.disabled = true;
+                spinner.classList.remove('d-none');
+
+                await fetch(`/book/${currentBookId}`, { method: "DELETE" });
+                await fetchBooks();
+
+                bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
+            } catch (error) {
+                alert('Erro ao excluir o livro');
+            } finally {
+                deleteBtn.disabled = false;
+                spinner.classList.add('d-none');
+            }
+        });
+
+        // Inicialização
         fetchBooks();
     </script>
 </body>
