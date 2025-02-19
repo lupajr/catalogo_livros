@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista de Livros</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body class="container py-4">
+    <h1 class="text-center mb-4">Cadastro de Livros</h1>
+
+    <form id="bookForm" class="row g-2 mb-4">
+        <div class="col-md-5">
+            <input type="text" id="title" class="form-control" placeholder="Título" required>
+        </div>
+        <div class="col-md-5">
+            <input type="text" id="author" class="form-control" placeholder="Autor" required>
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-primary w-100">Adicionar Livro</button>
+        </div>
+    </form>
+
+    <h2 class="mb-3">Lista de Livros</h2>
+    <ul id="bookList" class="list-group"></ul>
+
+    <!-- Modal -->
+    <div class="modal fade" id="editModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="editId">
+                    <input type="text" id="editInput" class="form-control" placeholder="Novo valor">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="saveEdit()">Salvar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        async function fetchBooks() {
+            const response = await fetch("/book");
+            const books = await response.json();
+            const bookList = document.getElementById("bookList");
+            bookList.innerHTML = "";
+
+            books.forEach(book => {
+                const li = document.createElement("li");
+                li.className = "list-group-item d-flex justify-content-between align-items-center";
+                li.innerHTML = `
+                    <span><strong>${book.title}</strong> - ${book.author}</span>
+                    <div>
+                        <button class="btn btn-warning btn-sm" onclick="openModal(${book.id}, '${book.title}', 'title')">Editar Título</button>
+                        <button class="btn btn-info btn-sm" onclick="openModal(${book.id}, '${book.author}', 'author')">Editar Autor</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteBook(${book.id})">Deletar</button>
+                    </div>
+                `;
+                bookList.appendChild(li);
+            });
+        }
+
+        document.getElementById("bookForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const title = document.getElementById("title").value;
+            const author = document.getElementById("author").value;
+
+            await fetch("/book", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ title, author })
+            });
+
+            document.getElementById("title").value = "";
+            document.getElementById("author").value = "";
+            fetchBooks();
+        });
+
+        async function deleteBook(id) {
+            await fetch(`/book/${id}`, { method: "DELETE" });
+            fetchBooks();
+        }
+
+        function openModal(id, value, type) {
+            document.getElementById("editId").value = id;
+            document.getElementById("editInput").value = value;
+            document.getElementById("editInput").setAttribute("data-type", type);
+            new bootstrap.Modal(document.getElementById("editModal")).show();
+        }
+
+        async function saveEdit() {
+            const id = document.getElementById("editId").value;
+            const newValue = document.getElementById("editInput").value;
+            const type = document.getElementById("editInput").getAttribute("data-type");
+            const updateData = type === "title" ? { title: newValue } : { author: newValue };
+
+            await fetch(`/book/${id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(updateData)
+            });
+
+            fetchBooks();
+            bootstrap.Modal.getInstance(document.getElementById("editModal")).hide();
+        }
+
+        fetchBooks();
+    </script>
+</body>
+
+</html>
