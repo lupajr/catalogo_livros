@@ -77,10 +77,24 @@ def update_book(id):
         return jsonify({"message": "Book not found"}), 404
 
     data = request.json
+
+    # Verifica se pelo menos um campo foi fornecido
+    if "title" not in data and "author" not in data:
+        return jsonify({"message": "Pelo menos um campo (título ou autor) deve ser fornecido"}), 400
+
+    # Validação para o campo "title"
     if "title" in data:
-        book.title = data["title"]
+        new_title = data["title"].strip()  # Remove espaços em branco no início e no fim
+        if not new_title:  # Se o título estiver vazio após o strip
+            return jsonify({"message": "O título não pode estar vazio"}), 400
+        book.title = new_title
+
+    # Validação para o campo "author"
     if "author" in data:
-        book.author = data["author"]
+        new_author = data["author"].strip()  # Remove espaços em branco no início e no fim
+        if not new_author:  # Se o autor estiver vazio após o strip
+            return jsonify({"message": "O autor não pode estar vazio"}), 400
+        book.author = new_author
 
     db.session.commit()
     return book_schema.jsonify(book)
