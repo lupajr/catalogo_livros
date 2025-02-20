@@ -22,9 +22,7 @@ body {
 .book-cover {
     width: 100%;
     height: auto;
-    /* Altura automática */
     max-height: 300px;
-    /* Altura máxima */
     object-fit: contain;
     background: #f0f0f0;
     border-radius: 10px;
@@ -41,7 +39,7 @@ body {
     border: none;
 }
 
-/* Estilos personalizados para o modal */
+/* Modal styles */
 .modal-content {
     border-radius: 15px;
     border: none;
@@ -66,7 +64,7 @@ body {
     border: none;
 }
 
-/* Estilos para o modal de exclusão */
+/* Delete modal styles */
 #deleteModal .modal-content {
     border-radius: 15px;
     border: none;
