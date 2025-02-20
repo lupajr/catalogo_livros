@@ -190,8 +190,15 @@
     <script>
         let currentBookId = null;
 
-        // Função para buscar a capa do livro na Open Library
+        // Objeto para armazenar as capas já carregadas
+        const cachedCovers = {};
+
         async function fetchBookCover(title, author) {
+            // Verifica se a capa já foi carregada
+            if (cachedCovers[title]) {
+                return cachedCovers[title];
+            }
+
             try {
                 let response = await fetch(`https://openlibrary.org/search.json?title=${encodeURIComponent(title)}`);
                 let data = await response.json();
@@ -199,7 +206,9 @@
                 if (data.docs && data.docs.length > 0) {
                     const coverId = data.docs[0].cover_i;
                     if (coverId) {
-                        return `https://covers.openlibrary.org/b/id/${coverId}-M.jpg`;
+                        const coverUrl = `https://covers.openlibrary.org/b/id/${coverId}-M.jpg`;
+                        cachedCovers[title] = coverUrl; // Armazena a capa no cache
+                        return coverUrl;
                     }
                 }
 
@@ -212,7 +221,9 @@
                     if (data.docs && data.docs.length > 0) {
                         const coverId = data.docs[0].cover_i;
                         if (coverId) {
-                            return `https://covers.openlibrary.org/b/id/${coverId}-M.jpg`;
+                            const coverUrl = `https://covers.openlibrary.org/b/id/${coverId}-M.jpg`;
+                            cachedCovers[title] = coverUrl; // Armazena a capa no cache
+                            return coverUrl;
                         }
                     }
                 }
@@ -226,7 +237,9 @@
                         for (const book of data.docs) {
                             if (book.title.toLowerCase().includes(title.toLowerCase()) || title.toLowerCase().includes(book.title.toLowerCase())) {
                                 if (book.cover_i) {
-                                    return `https://covers.openlibrary.org/b/id/${book.cover_i}-M.jpg`;
+                                    const coverUrl = `https://covers.openlibrary.org/b/id/${book.cover_i}-M.jpg`;
+                                    cachedCovers[title] = coverUrl; // Armazena a capa no cache
+                                    return coverUrl;
                                 }
                             }
                         }
@@ -237,6 +250,18 @@
             } catch (error) {
                 console.error("Erro ao buscar capa do livro:", error);
                 return null;
+            }
+        }
+
+        // Função para adicionar um novo livro
+        async function addNewBook(title, author) {
+            const coverUrl = await fetchBookCover(title, author);
+            if (coverUrl) {
+                // Adiciona o novo livro com a capa encontrada
+                // Aqui você pode adicionar a lógica para adicionar o livro à sua lista
+                console.log(`Livro adicionado: ${title} com capa ${coverUrl}`);
+            } else {
+                console.log(`Não foi possível encontrar a capa para o livro: ${title}`);
             }
         }
 
