@@ -191,10 +191,10 @@
         let currentBookId = null;
 
         // Função para buscar a capa do livro na Open Library
-        async function fetchBookCover(title) {
+        async function fetchBookCover(title, author) {
             try {
-                const response = await fetch(`https://openlibrary.org/search.json?title=${encodeURIComponent(title)}`);
-                const data = await response.json();
+                let response = await fetch(`https://openlibrary.org/search.json?title=${encodeURIComponent(title)}`);
+                let data = await response.json();
 
                 if (data.docs && data.docs.length > 0) {
                     const coverId = data.docs[0].cover_i;
@@ -202,12 +202,56 @@
                         return `https://covers.openlibrary.org/b/id/${coverId}-M.jpg`;
                     }
                 }
-                return null; // Retorna null se não encontrar a capa
+
+                // Se não encontrar, tentar buscar o título em inglês usando uma API de tradução
+                const translatedTitle = await translateToEnglish(title);
+                if (translatedTitle !== title) {
+                    response = await fetch(`https://openlibrary.org/search.json?title=${encodeURIComponent(translatedTitle)}`);
+                    data = await response.json();
+
+                    if (data.docs && data.docs.length > 0) {
+                        const coverId = data.docs[0].cover_i;
+                        if (coverId) {
+                            return `https://covers.openlibrary.org/b/id/${coverId}-M.jpg`;
+                        }
+                    }
+                }
+
+                // Se ainda não encontrar, buscar pelo autor e verificar títulos semelhantes
+                if (author) {
+                    response = await fetch(`https://openlibrary.org/search.json?author=${encodeURIComponent(author)}`);
+                    data = await response.json();
+
+                    if (data.docs && data.docs.length > 0) {
+                        for (const book of data.docs) {
+                            if (book.title.toLowerCase().includes(title.toLowerCase()) || title.toLowerCase().includes(book.title.toLowerCase())) {
+                                if (book.cover_i) {
+                                    return `https://covers.openlibrary.org/b/id/${book.cover_i}-M.jpg`;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                return null; // Se não encontrar nada
             } catch (error) {
                 console.error("Erro ao buscar capa do livro:", error);
                 return null;
             }
         }
+
+        // Função para traduzir um título para inglês usando a API de tradução gratuita (exemplo com MyMemory API)
+        async function translateToEnglish(text) {
+            try {
+                const response = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=pt|en`);
+                const data = await response.json();
+                return data.responseData.translatedText || text;
+            } catch (error) {
+                console.error("Erro ao traduzir título:", error);
+                return text;
+            }
+        }
+
 
         // Função para carregar a lista de livros
         async function fetchBooks() {
