@@ -2,7 +2,8 @@
 
 Esta é uma aplicação simples em Flask que funciona como um catálogo de livros. A aplicação permite adicionar livros à lista, exibir suas capas e buscar informações sobre os livros utilizando a API do Open Library. Além disso, há um tradutor básico para buscar títulos semelhantes em português com base no autor digitado.
 
-![Imagem da Aplicação](![image](https://github.com/user-attachments/assets/4d1b4036-78b1-4129-8ee5-16412dd61e5d))
+![image](https://github.com/user-attachments/assets/0fe9871e-7bd0-48da-acf3-6030b8d53ab1)
+
 
 ## 🚀 Funcionalidades
 - **Adicionar Livros**: Adicione novos livros à lista fornecendo o título e o autor.
