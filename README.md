@@ -20,7 +20,7 @@ Se o Python não estiver instalado, baixe-o em [python.org](https://www.python.o
 
 ### 1️⃣ Clone o repositório
 ```bash
-git clone [https://github.com/lupajr/catalogo_livros.git](https://github.com/lupajr/catalogo_livros.git)
+git clone https://github.com/lupajr/catalogo_livros.git
 cd catalogo_livros
 ```
 
